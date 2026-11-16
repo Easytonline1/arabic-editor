@@ -83,7 +83,15 @@ BOOL Settings_Save(const Settings *s, DWORD *error, wchar_t *failedPath, size_t 
         "Maximized=%d\r\n",
         s->fontSize, s->wordWrap ? 1 : 0, s->width, s->height, s->maximized ? 1 : 0);
 
-    /* CREATE_ALWAYS يفشل إن كان الملف للقراءة فقط، فيُترك كما هو */
+    /* ملف للقراءة فقط لا يُكتب فوقه. ويندوز يرفض CREATE_ALWAYS عليه، لكننا نفحص الخاصية بأنفسنا
+       أيضًا لأن بعض البيئات (مثل Wine تحت المستخدم root) تتجاهلها فيُكتب الملف رغمها. */
+    DWORD attrs = GetFileAttributesW(path);
+    if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_READONLY)) {
+        *error = ERROR_ACCESS_DENIED;
+        lstrcpynW(failedPath, path, (int)count);
+        return FALSE;
+    }
+
     HANDLE h = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h == INVALID_HANDLE_VALUE) {
         *error = GetLastError();
