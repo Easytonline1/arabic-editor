@@ -64,7 +64,7 @@ static void UpdateTitle(void)
 {
     wchar_t enc[32], title[MAX_PATH + 96];
     Enc_Describe(g_encoding, enc, 32);
-    _snwprintf(title, MAX_PATH + 96, L"%s%s [%s] %dpt - %s",
+    _snwprintf(title, MAX_PATH + 96, L"%s%s [%s] %d نقطة - %s",
                IsModified() ? L"*" : L"", DisplayName(), enc, g_settings.fontSize, APP_NAME);
     title[MAX_PATH + 95] = L'\0';
     SetWindowTextW(g_hwndMain, title);
@@ -450,13 +450,30 @@ static void SaveSettingsOnExit(void)
 
 static BOOL CreateEditor(HWND hwndParent, HINSTANCE hInstance)
 {
-    g_hwndEdit = CreateWindowExW(0, L"Scintilla", L"",
+    /* الواجهة كلها معكوسة (من اليمين لليسار)، لكن مساحة الكتابة لا تُعكس:
+       Scintilla ترسم النص بنفسها، واتجاهه تتولاه خاصية النص ثنائي الاتجاه أدناه */
+    g_hwndEdit = CreateWindowExW(WS_EX_NOINHERITLAYOUT, L"Scintilla", L"",
                                  WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL | WS_CLIPCHILDREN,
                                  0, 0, 0, 0, hwndParent, NULL, hInstance, NULL);
     if (!g_hwndEdit)
         return FALSE;
 
-    Sci(SCI_SETCODEPAGE, SC_CP_UTF8, 0);       /* كل النص داخل المساحة UTF-8 */
+    Sci(SCI_SETCODEPAGE, SC_CP_UTF8, 0);       /* كل النص داخل المساحة UTF-8 (شرط للنص ثنائي الاتجاه) */
+
+    /* DirectWrite شرط للنص ثنائي الاتجاه على ويندوز. إن لم يتوفر Direct2D تبقى Scintilla على GDI */
+    Sci(SCI_SETTECHNOLOGY, SC_TECHNOLOGY_DIRECTWRITE, 0);
+    int technology = (int)Sci(SCI_GETTECHNOLOGY, 0, 0);
+    /* وثائق Scintilla: الدعم تجريبي، ولا يعمل إلا بـ UTF-8 وفي وضع L2R؛ أما R2L فـ"قد يُنفَّذ مستقبلًا" */
+    Sci(SCI_SETBIDIRECTIONAL, SC_BIDIRECTIONAL_L2R, 0);
+    int bidi = (int)Sci(SCI_GETBIDIRECTIONAL, 0, 0);
+    /* التحديد المعتم (SC_LAYER_BASE) لا يعمل مع النص ثنائي الاتجاه */
+    Sci(SCI_SETSELECTIONLAYER, SC_LAYER_UNDER_TEXT, 0);
+    char line[160];
+    snprintf(line, sizeof(line),
+             "ArabicEditor: SCI_GETTECHNOLOGY -> %d (1 = DirectWrite), SCI_GETBIDIRECTIONAL -> %d (1 = L2R, 0 = disabled)\n",
+             technology, bidi);
+    OutputDebugStringA(line);
+
     g_fontName = PickArabicFont();
     Sci(SCI_SETMARGINWIDTHN, 1, 0);
     /* التكبير عندنا يغيّر حجم الخط نفسه، فنلغي اختصارات التكبير الداخلية في Scintilla */
@@ -546,6 +563,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 {
     (void)hPrevInstance;
     (void)pCmdLine;
+
+    /* كل النوافذ التي ينشئها البرنامج (الرئيسية وقوائمها ونافذة البحث والرسائل) من اليمين لليسار */
+    SetProcessDefaultLayout(LAYOUT_RTL);
 
     /* مع الربط الثابت يجب تسجيل أصناف Scintilla بأنفسنا قبل إنشاء نافذتها */
     if (!Scintilla_RegisterClasses(hInstance))
