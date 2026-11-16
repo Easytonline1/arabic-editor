@@ -5,6 +5,7 @@
 #define UNICODE
 #endif
 #include "find.h"
+#include "msgbox.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -47,7 +48,7 @@ static void Trace(const char *fmt, ...)
 static int Ask(const wchar_t *text, UINT flags)
 {
     HWND owner = g_dialog && IsWindowVisible(g_dialog) ? g_dialog : g_main;
-    return MessageBoxW(owner, text, L"Arabic Editor", flags | MB_RTLREADING | MB_RIGHT);
+    return ArabicMessageBox(owner, text, L"Arabic Editor", flags);
 }
 
 static int SearchFlags(void)

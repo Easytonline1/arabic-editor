@@ -18,6 +18,7 @@
 #include "encoding.h"
 #include "settings.h"
 #include "find.h"
+#include "msgbox.h"
 #include "resource.h"
 
 #define APP_NAME         L"Arabic Editor"
@@ -43,8 +44,8 @@ static LRESULT Sci(unsigned int msg, uintptr_t wParam, intptr_t lParam)
 
 static int Ask(const wchar_t *text, UINT flags)
 {
-    /* رسائل عربية: قراءة من اليمين ومحاذاة لليمين */
-    return MessageBoxW(g_hwndMain, text, APP_NAME, flags | MB_RTLREADING | MB_RIGHT);
+    /* رسائل عربية من اليمين لليسار بأزرار عربية */
+    return ArabicMessageBox(g_hwndMain, text, APP_NAME, flags);
 }
 
 static const wchar_t *DisplayName(void)
@@ -521,6 +522,21 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 Sci(SCI_SETZOOM, 0, 0);
                 SetFontSize(g_settings.fontSize + z);
             }
+        }
+        if (n->nmhdr.hwndFrom == g_hwndEdit && n->nmhdr.code == SCN_UPDATEUI &&
+            (n->updated & SC_UPDATE_SELECTION)) {
+            /* سطر تشخيص لموضع المؤشر والتحديد (يظهر في Wine مع WINEDEBUG=+debugstr) */
+            intptr_t caret = Sci(SCI_GETCURRENTPOS, 0, 0), anchor = Sci(SCI_GETANCHOR, 0, 0);
+            char sel[128] = "";
+            intptr_t s = anchor < caret ? anchor : caret, e = anchor < caret ? caret : anchor;
+            if (e > s && e - s < (intptr_t)sizeof(sel)) {
+                struct Sci_TextRangeFull tr = { { s, e }, sel };
+                Sci(SCI_GETTEXTRANGEFULL, 0, (intptr_t)&tr);
+            }
+            char line[256];
+            snprintf(line, sizeof(line), "ArabicEditor: caret=%ld anchor=%ld selection=\"%s\"\n",
+                     (long)caret, (long)anchor, sel);
+            OutputDebugStringA(line);
         }
         return 0;
     }
