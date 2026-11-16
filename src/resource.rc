@@ -14,6 +14,12 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&خروج",                       IDM_FILE_EXIT
     END
+    POPUP "&بحث"
+    BEGIN
+        MENUITEM "&بحث...\tCtrl+F",              IDM_SEARCH_FIND
+        MENUITEM "البحث عن ال&تالي\tF3",        IDM_SEARCH_NEXT
+        MENUITEM "ا&ستبدال...\tCtrl+H",          IDM_SEARCH_REPLACE
+    END
     POPUP "&عرض"
     BEGIN
         MENUITEM "&التفاف السطور\tCtrl+W",       IDM_VIEW_WORDWRAP
@@ -41,4 +47,23 @@ BEGIN
     VK_SUBTRACT, IDM_VIEW_ZOOMOUT,   VIRTKEY, CONTROL
     "0",         IDM_VIEW_ZOOMRESET, VIRTKEY, CONTROL
     VK_NUMPAD0,  IDM_VIEW_ZOOMRESET, VIRTKEY, CONTROL
+    "F",         IDM_SEARCH_FIND,    VIRTKEY, CONTROL
+    VK_F3,       IDM_SEARCH_NEXT,    VIRTKEY
+    "H",         IDM_SEARCH_REPLACE, VIRTKEY, CONTROL
+END
+
+// نافذة البحث والاستبدال (غير مشروطة). في وضع البحث تُخفى عناصر الاستبدال.
+IDD_FINDREPLACE DIALOGEX 0, 0, 268, 72
+STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "بحث"
+FONT 9, "MS Shell Dlg 2", 0, 0, 0x1
+BEGIN
+    LTEXT           "ابحث عن:", -1, 7, 9, 52, 8
+    EDITTEXT        IDC_FIND_TEXT, 62, 7, 134, 13, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "استبدل بـ:", IDC_REPLACE_LABEL, 7, 27, 52, 8
+    EDITTEXT        IDC_REPLACE_TEXT, 62, 25, 134, 13, ES_AUTOHSCROLL | WS_TABSTOP
+    AUTOCHECKBOX    "مطابقة حالة الأحرف (Match case)", IDC_MATCH_CASE, 7, 50, 190, 10, WS_TABSTOP
+    DEFPUSHBUTTON   "البحث عن التالي", IDC_FIND_NEXT, 203, 6, 58, 14, WS_TABSTOP
+    PUSHBUTTON      "استبدال", IDC_REPLACE, 203, 24, 58, 14, WS_TABSTOP
+    PUSHBUTTON      "إغلاق", IDCANCEL, 203, 42, 58, 14, WS_TABSTOP
 END

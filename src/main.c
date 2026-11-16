@@ -17,6 +17,7 @@
 #include "SciLexer.h"
 #include "encoding.h"
 #include "settings.h"
+#include "find.h"
 #include "resource.h"
 
 #define APP_NAME         L"Arabic Editor"
@@ -477,6 +478,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         g_encoding.codePage = CP_UTF8;
         ApplyStyles();
         SetWordWrap(g_settings.wordWrap);
+        Find_Init(((LPCREATESTRUCTW)lParam)->hInstance, hwnd, g_hwndEdit);
         UpdateTitle();
         return 0;
 
@@ -517,6 +519,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         case IDM_VIEW_ZOOMIN:    SetFontSize(g_settings.fontSize + 1); return 0;
         case IDM_VIEW_ZOOMOUT:   SetFontSize(g_settings.fontSize - 1); return 0;
         case IDM_VIEW_ZOOMRESET: SetFontSize(FONT_SIZE_DEFAULT); return 0;
+        case IDM_SEARCH_FIND:    Find_ShowDialog(FALSE); return 0;
+        case IDM_SEARCH_NEXT:    Find_Next(); return 0;
+        case IDM_SEARCH_REPLACE: Find_ShowDialog(TRUE); return 0;
         }
         break;
 
@@ -576,7 +581,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     HACCEL accel = LoadAcceleratorsW(hInstance, MAKEINTRESOURCEW(IDR_ACCEL));
     MSG msg;
     while (GetMessageW(&msg, NULL, 0, 0) > 0) {
-        if (!TranslateAcceleratorW(hwnd, accel, &msg)) {
+        /* الاختصارات (Ctrl+F وF3 وCtrl+H...) تعمل أولًا حتى والتركيز في نافذة البحث،
+           ثم تأخذ نافذة البحث غير المشروطة مفاتيح التنقل (Tab وEnter وEsc) */
+        if (TranslateAcceleratorW(hwnd, accel, &msg))
+            continue;
+        HWND findDlg = Find_Dialog();
+        if (findDlg && IsDialogMessageW(findDlg, &msg))
+            continue;
+        {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
