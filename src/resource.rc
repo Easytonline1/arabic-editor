@@ -1,0 +1,25 @@
+// resource.rc - القائمة ومفاتيح الاختصار (الملف بترميز UTF-8)
+#pragma code_page(65001)
+#include <windows.h>
+#include "resource.h"
+
+IDR_MAINMENU MENU
+BEGIN
+    POPUP "&ملف"
+    BEGIN
+        MENUITEM "&جديد\tCtrl+N",               IDM_FILE_NEW
+        MENUITEM "&فتح...\tCtrl+O",             IDM_FILE_OPEN
+        MENUITEM "&حفظ\tCtrl+S",                IDM_FILE_SAVE
+        MENUITEM "حفظ &باسم...\tCtrl+Shift+S",  IDM_FILE_SAVEAS
+        MENUITEM SEPARATOR
+        MENUITEM "&خروج",                       IDM_FILE_EXIT
+    END
+END
+
+IDR_ACCEL ACCELERATORS
+BEGIN
+    "N", IDM_FILE_NEW,    VIRTKEY, CONTROL
+    "O", IDM_FILE_OPEN,   VIRTKEY, CONTROL
+    "S", IDM_FILE_SAVE,   VIRTKEY, CONTROL
+    "S", IDM_FILE_SAVEAS, VIRTKEY, CONTROL, SHIFT
+END
