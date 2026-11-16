@@ -86,7 +86,11 @@ EOF
 x86_64-w64-mingw32-gcc -o "$TMP/hello.exe" "$TMP/hello.c"
 wine "$TMP/hello.exe"
 rea --version || true
-GHIDRA_INSTALL_DIR="$GHIDRA_INSTALL_DIR" rea doctor --json >"$TMP/doctor.json" 2>&1 \
-  && log "rea doctor: نجح" || log "rea doctor أبلغ عن مشكلات (راجع: rea doctor --json)"
+GHIDRA_INSTALL_DIR="$GHIDRA_INSTALL_DIR" rea doctor --json >"$TMP/doctor.json" 2>/dev/null || true
+if grep -Eq '"providerVersion": *"'"$GHIDRA_VERSION"'"' "$TMP/doctor.json"; then
+  log "rea doctor: مزود Ghidra ${GHIDRA_VERSION} متاح"
+else
+  log "تحذير: rea doctor لم يجد Ghidra (راجع: rea doctor --json)"
+fi
 
 log "انتهى الإعداد. GHIDRA_INSTALL_DIR=$GHIDRA_INSTALL_DIR  DISPLAY=:$DISPLAY_NUM"
