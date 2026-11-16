@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # يثبت Ghidra 12.1.4 و REA (rea-agents@6.9.0) و mingw-w64 و Wine على شاشة Xvfb الافتراضية.
 # الهدف: الانتهاء في أقل من 5 دقائق (التنزيلات وتثبيت الحزم تعمل بالتوازي).
 set -euo pipefail
