@@ -1,0 +1,23 @@
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=0, range=0..14) -> 0
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=0, range=4..14) -> 5
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=0, range=9..14) -> 10
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=4, range=14..14) -> -1
+ArabicEditor: reached end, wrapping to start
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=4, range=0..14) -> 0
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=4, range=4..14) -> 10
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=4, range=14..14) -> -1
+ArabicEditor: reached end, wrapping to start
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=4, range=0..14) -> 0
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=4, range=0..4) -> 0
+ArabicEditor: SCI_REPLACETARGET("text") at 0 -> 4 bytes
+ArabicEditor: SCI_SEARCHINTARGET("word", flags=4, range=4..14) -> 10
+ArabicEditor: SCI_SEARCHINTARGET("line", flags=4, range=14..14) -> -1
+ArabicEditor: reached end, wrapping to start
+ArabicEditor: SCI_SEARCHINTARGET("line", flags=4, range=0..14) -> -1
+ArabicEditor: not found; caret=14 anchor=10 length=14 (unchanged)
+ArabicEditor: SCI_SEARCHINTARGET("line", flags=4, range=10..14) -> -1
+ArabicEditor: selection is not a match; finding first
+ArabicEditor: SCI_SEARCHINTARGET("line", flags=4, range=14..14) -> -1
+ArabicEditor: reached end, wrapping to start
+ArabicEditor: SCI_SEARCHINTARGET("line", flags=4, range=0..14) -> -1
+ArabicEditor: not found; caret=14 anchor=10 length=14 (unchanged)

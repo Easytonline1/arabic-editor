@@ -209,6 +209,14 @@ void Find_ShowDialog(BOOL replace)
 
     if (!g_dialog) {
         CreateDialogParamW(g_inst, MAKEINTRESOURCEW(IDD_FINDREPLACE), g_main, DialogProc, 0);
+        if (g_dialog) {
+            /* نضعها أسفل يمين النافذة الرئيسية حتى لا تغطي أول النص حيث تظهر النتائج */
+            RECT m, d;
+            GetWindowRect(g_main, &m);
+            GetWindowRect(g_dialog, &d);
+            SetWindowPos(g_dialog, NULL, m.right - (d.right - d.left) - 24,
+                         m.bottom - (d.bottom - d.top) - 24, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+        }
     } else {
         SetDlgItemTextW(g_dialog, IDC_FIND_TEXT, g_findWide);
         ApplyMode();
