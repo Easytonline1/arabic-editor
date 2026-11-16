@@ -3,3 +3,6 @@ original/
 third_party/scintilla/win32/*.o
 third_party/scintilla/bin/*.a
 third_party/scintilla/bin/*.dll
+third_party/lexilla/src/*.o
+third_party/lexilla/bin/*.a
+third_party/lexilla/bin/*.dll
