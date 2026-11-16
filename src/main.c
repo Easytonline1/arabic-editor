@@ -163,6 +163,13 @@ static void SetWordWrap(BOOL on)
 #define TIMER_WORDCOUNT        1
 #define WORDCOUNT_DEFER_BYTES  (1024 * 1024)   /* فوق هذا الحجم نؤجل العدّ قليلًا أثناء الكتابة */
 
+/* نعتمد على الإعداد لا على IsWindowVisible: أثناء إنشاء النافذة الرئيسية (قبل إظهارها)
+   تُرجع IsWindowVisible القيمة FALSE لكل نوافذها الابنة */
+static BOOL StatusShown(void)
+{
+    return g_hwndStatus && g_settings.wordCount;
+}
+
 /* مساحة الكتابة تملأ النافذة، إلا ارتفاع شريط الحالة إن كان ظاهرًا */
 static void LayoutChildren(void)
 {
@@ -170,7 +177,7 @@ static void LayoutChildren(void)
     if (!g_hwndEdit || !GetClientRect(g_hwndMain, &rc))
         return;
     int statusH = 0;
-    if (g_hwndStatus && IsWindowVisible(g_hwndStatus)) {
+    if (StatusShown()) {
         SendMessageW(g_hwndStatus, WM_SIZE, 0, 0);     /* يضبط الشريط عرضه وموضعه بنفسه */
         RECT sr;
         GetWindowRect(g_hwndStatus, &sr);
@@ -182,7 +189,7 @@ static void LayoutChildren(void)
 static void UpdateWordCount(void)
 {
     KillTimer(g_hwndMain, TIMER_WORDCOUNT);
-    if (!g_hwndStatus || !IsWindowVisible(g_hwndStatus))
+    if (!StatusShown())
         return;                                     /* مخفي: لا حاجة للعدّ الآن */
     /* SCI_GETCHARACTERPOINTER يعطي نص المستند مباشرة دون نسخه */
     size_t len = (size_t)Sci(SCI_GETLENGTH, 0, 0);
@@ -202,7 +209,7 @@ static void UpdateWordCount(void)
 /* يُستدعى عند كل إدراج أو حذف: فورًا للنصوص العادية، ومؤجلًا للكبيرة */
 static void ScheduleWordCount(void)
 {
-    if (!g_hwndStatus || !IsWindowVisible(g_hwndStatus))
+    if (!StatusShown())
         return;
     if ((size_t)Sci(SCI_GETLENGTH, 0, 0) < WORDCOUNT_DEFER_BYTES)
         UpdateWordCount();

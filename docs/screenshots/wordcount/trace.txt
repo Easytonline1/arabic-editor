@@ -1,0 +1,15 @@
+ArabicEditor: word count -> 0
+ArabicEditor: word count -> 1
+ArabicEditor: word count -> 1
+ArabicEditor: word count -> 1
+ArabicEditor: word count -> 1
+ArabicEditor: word count -> 2
+ArabicEditor: word count -> 2
+ArabicEditor: word count -> 2
+ArabicEditor: word count -> 2
+ArabicEditor: word count -> 3
+ArabicEditor: word count -> 3
+ArabicEditor: word count -> 3
+ArabicEditor: word count -> 3
+ArabicEditor: word count -> 3
+ArabicEditor: word count -> 3
