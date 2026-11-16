@@ -23,6 +23,7 @@ BEGIN
     POPUP "&عرض"
     BEGIN
         MENUITEM "&التفاف السطور\tCtrl+W",       IDM_VIEW_WORDWRAP
+        MENUITEM "&عدّاد الكلمات",              IDM_VIEW_WORDCOUNT
         POPUP "&تكبير"
         BEGIN
             MENUITEM "&تكبير الخط\tCtrl++",       IDM_VIEW_ZOOMIN

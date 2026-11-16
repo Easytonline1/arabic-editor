@@ -1,7 +1,7 @@
 /* Arabic Editor - نافذة Win32 فيها مساحة كتابة Scintilla بترميز UTF-8،
    مع أوامر: جديد، فتح، حفظ، حفظ باسم، والسؤال عن الحفظ عند الإغلاق،
    وقائمة عرض (التفاف السطور، تكبير الخط وتصغيره) تُحفظ في editor.ini،
-   وتلوين ملفات الإعدادات بمحلل props من Lexilla. */
+   وتلوين ملفات الإعدادات بمحلل props من Lexilla، وعدّاد كلمات في شريط الحالة. */
 #ifndef UNICODE
 #define UNICODE
 #endif
@@ -10,6 +10,7 @@
 #endif
 #include <windows.h>
 #include <commdlg.h>
+#include <commctrl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include "Scintilla.h"
@@ -19,6 +20,7 @@
 #include "settings.h"
 #include "find.h"
 #include "msgbox.h"
+#include "wordcount.h"
 #include "resource.h"
 
 #define APP_NAME         L"Arabic Editor"
@@ -30,6 +32,7 @@ static const wchar_t CLASS_NAME[] = L"ArabicEditorWindow";
 /* حالة المستند الحالي */
 static HWND     g_hwndMain;
 static HWND     g_hwndEdit;
+static HWND     g_hwndStatus;          /* شريط الحالة: فيه عدّاد الكلمات */
 static wchar_t  g_path[MAX_PATH];      /* فارغ = مستند جديد بلا اسم */
 static Encoding g_encoding;            /* ترميز الملف على القرص */
 static Settings g_settings;            /* حجم الخط والالتفاف وحجم النافذة */
@@ -153,6 +156,79 @@ static void SetWordWrap(BOOL on)
     g_settings.wordWrap = on;
     Sci(SCI_SETWRAPMODE, on ? SC_WRAP_WORD : SC_WRAP_NONE, 0);
     CheckMenuItem(GetMenu(g_hwndMain), IDM_VIEW_WORDWRAP, on ? MF_CHECKED : MF_UNCHECKED);
+}
+
+/* ---------- عدّاد الكلمات في شريط الحالة ---------- */
+
+#define TIMER_WORDCOUNT        1
+#define WORDCOUNT_DEFER_BYTES  (1024 * 1024)   /* فوق هذا الحجم نؤجل العدّ قليلًا أثناء الكتابة */
+
+/* مساحة الكتابة تملأ النافذة، إلا ارتفاع شريط الحالة إن كان ظاهرًا */
+static void LayoutChildren(void)
+{
+    RECT rc;
+    if (!g_hwndEdit || !GetClientRect(g_hwndMain, &rc))
+        return;
+    int statusH = 0;
+    if (g_hwndStatus && IsWindowVisible(g_hwndStatus)) {
+        SendMessageW(g_hwndStatus, WM_SIZE, 0, 0);     /* يضبط الشريط عرضه وموضعه بنفسه */
+        RECT sr;
+        GetWindowRect(g_hwndStatus, &sr);
+        statusH = sr.bottom - sr.top;
+    }
+    MoveWindow(g_hwndEdit, 0, 0, rc.right, rc.bottom - statusH > 0 ? rc.bottom - statusH : 0, TRUE);
+}
+
+static void UpdateWordCount(void)
+{
+    KillTimer(g_hwndMain, TIMER_WORDCOUNT);
+    if (!g_hwndStatus || !IsWindowVisible(g_hwndStatus))
+        return;                                     /* مخفي: لا حاجة للعدّ الآن */
+    /* SCI_GETCHARACTERPOINTER يعطي نص المستند مباشرة دون نسخه */
+    size_t len = (size_t)Sci(SCI_GETLENGTH, 0, 0);
+    const char *text = (const char *)Sci(SCI_GETCHARACTERPOINTER, 0, 0);
+    size_t words = WordCount_Utf8(text, len);
+
+    wchar_t label[64];
+    _snwprintf(label, 64, L"عدد الكلمات: %lu", (unsigned long)words);
+    label[63] = L'\0';
+    SendMessageW(g_hwndStatus, SB_SETTEXTW, 0, (LPARAM)label);
+
+    char line[80];
+    snprintf(line, sizeof(line), "ArabicEditor: word count -> %lu\n", (unsigned long)words);
+    OutputDebugStringA(line);
+}
+
+/* يُستدعى عند كل إدراج أو حذف: فورًا للنصوص العادية، ومؤجلًا للكبيرة */
+static void ScheduleWordCount(void)
+{
+    if (!g_hwndStatus || !IsWindowVisible(g_hwndStatus))
+        return;
+    if ((size_t)Sci(SCI_GETLENGTH, 0, 0) < WORDCOUNT_DEFER_BYTES)
+        UpdateWordCount();
+    else
+        SetTimer(g_hwndMain, TIMER_WORDCOUNT, 200, NULL);
+}
+
+static void SetWordCountVisible(BOOL on)
+{
+    g_settings.wordCount = on;
+    if (g_hwndStatus)
+        ShowWindow(g_hwndStatus, on ? SW_SHOW : SW_HIDE);
+    CheckMenuItem(GetMenu(g_hwndMain), IDM_VIEW_WORDCOUNT, on ? MF_CHECKED : MF_UNCHECKED);
+    LayoutChildren();
+    if (on)
+        UpdateWordCount();
+}
+
+static BOOL CreateStatusBar(HWND hwndParent, HINSTANCE hInstance)
+{
+    INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES };
+    InitCommonControlsEx(&icc);
+    /* يرث الاتجاه المعكوس من النافذة الرئيسية فيظهر النص على اليمين */
+    g_hwndStatus = CreateWindowExW(0, STATUSCLASSNAMEW, L"", WS_CHILD | SBARS_SIZEGRIP,
+                                   0, 0, 0, 0, hwndParent, NULL, hInstance, NULL);
+    return g_hwndStatus != NULL;
 }
 
 /* ---------- القراءة والكتابة ---------- */
@@ -503,13 +579,25 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         ApplyStyles();
         SetWordWrap(g_settings.wordWrap);
         Find_Init(((LPCREATESTRUCTW)lParam)->hInstance, hwnd, g_hwndEdit);
+        /* إشعارات تغيّر النص (إدراج وحذف) لتحديث عدّاد الكلمات أثناء الكتابة */
+        Sci(SCI_SETMODEVENTMASK, SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT, 0);
+        if (CreateStatusBar(hwnd, ((LPCREATESTRUCTW)lParam)->hInstance))
+            SetWordCountVisible(g_settings.wordCount);
+        else
+            EnableMenuItem(GetMenu(hwnd), IDM_VIEW_WORDCOUNT, MF_GRAYED);
         UpdateTitle();
         return 0;
 
     case WM_SIZE:
-        if (g_hwndEdit)
-            MoveWindow(g_hwndEdit, 0, 0, LOWORD(lParam), HIWORD(lParam), TRUE);
+        LayoutChildren();
         return 0;
+
+    case WM_TIMER:
+        if (wParam == TIMER_WORDCOUNT) {
+            UpdateWordCount();
+            return 0;
+        }
+        break;
 
     case WM_SETFOCUS:
         if (g_hwndEdit)
@@ -521,6 +609,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         if (n->nmhdr.hwndFrom == g_hwndEdit &&
             (n->nmhdr.code == SCN_SAVEPOINTREACHED || n->nmhdr.code == SCN_SAVEPOINTLEFT))
             UpdateTitle();              /* إظهار/إخفاء علامة * في العنوان */
+        if (n->nmhdr.hwndFrom == g_hwndEdit && n->nmhdr.code == SCN_MODIFIED &&
+            (n->modificationType & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT)))
+            ScheduleWordCount();
         if (n->nmhdr.hwndFrom == g_hwndEdit && n->nmhdr.code == SCN_ZOOM) {
             /* Ctrl+عجلة الفأرة: نحوّل تكبير Scintilla إلى تغيير في حجم الخط المحفوظ */
             int z = (int)Sci(SCI_GETZOOM, 0, 0);
@@ -555,6 +646,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         case IDM_FILE_SAVEAS: CmdSaveAs(); return 0;
         case IDM_FILE_EXIT:   SendMessageW(hwnd, WM_CLOSE, 0, 0); return 0;
         case IDM_VIEW_WORDWRAP:  SetWordWrap(!g_settings.wordWrap); return 0;
+        case IDM_VIEW_WORDCOUNT: SetWordCountVisible(!g_settings.wordCount); return 0;
         case IDM_VIEW_ZOOMIN:    SetFontSize(g_settings.fontSize + 1); return 0;
         case IDM_VIEW_ZOOMOUT:   SetFontSize(g_settings.fontSize - 1); return 0;
         case IDM_VIEW_ZOOMRESET: SetFontSize(FONT_SIZE_DEFAULT); return 0;

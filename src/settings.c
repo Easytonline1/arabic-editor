@@ -10,6 +10,7 @@ void Settings_Defaults(Settings *s)
 {
     s->fontSize  = FONT_SIZE_DEFAULT;
     s->wordWrap  = FALSE;
+    s->wordCount = TRUE;
     s->width     = 800;
     s->height    = 600;
     s->maximized = FALSE;
@@ -45,6 +46,7 @@ void Settings_Load(Settings *s)
     s->fontSize  = Clamp((int)GetPrivateProfileIntW(L"View", L"FontSize", s->fontSize, path),
                          FONT_SIZE_MIN, FONT_SIZE_MAX);
     s->wordWrap  = GetPrivateProfileIntW(L"View", L"WordWrap", s->wordWrap, path) != 0;
+    s->wordCount = GetPrivateProfileIntW(L"View", L"WordCount", s->wordCount, path) != 0;
 
     /* لا نسمح بنافذة أصغر من حد معقول ولا أكبر من الشاشات المتصلة */
     int maxW = GetSystemMetrics(SM_CXVIRTUALSCREEN), maxH = GetSystemMetrics(SM_CYVIRTUALSCREEN);
@@ -76,12 +78,13 @@ BOOL Settings_Save(const Settings *s, DWORD *error, wchar_t *failedPath, size_t 
         "[View]\r\n"
         "FontSize=%d\r\n"
         "WordWrap=%d\r\n"
+        "WordCount=%d\r\n"
         "\r\n"
         "[Window]\r\n"
         "Width=%d\r\n"
         "Height=%d\r\n"
         "Maximized=%d\r\n",
-        s->fontSize, s->wordWrap ? 1 : 0, s->width, s->height, s->maximized ? 1 : 0);
+        s->fontSize, s->wordWrap ? 1 : 0, s->wordCount ? 1 : 0, s->width, s->height, s->maximized ? 1 : 0);
 
     /* ملف للقراءة فقط لا يُكتب فوقه. ويندوز يرفض CREATE_ALWAYS عليه، لكننا نفحص الخاصية بأنفسنا
        أيضًا لأن بعض البيئات (مثل Wine تحت المستخدم root) تتجاهلها فيُكتب الملف رغمها. */

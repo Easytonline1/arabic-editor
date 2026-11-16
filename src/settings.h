@@ -11,6 +11,7 @@
 typedef struct {
     int  fontSize;      /* بالنقاط */
     BOOL wordWrap;
+    BOOL wordCount;     /* إظهار شريط الحالة بعدّاد الكلمات */
     int  width;         /* حجم النافذة في وضعها العادي (غير المكبّر) بالبكسل */
     int  height;
     BOOL maximized;
