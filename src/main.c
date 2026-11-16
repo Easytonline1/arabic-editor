@@ -458,6 +458,11 @@ static BOOL CreateEditor(HWND hwndParent, HINSTANCE hInstance)
                                  0, 0, 0, 0, hwndParent, NULL, hInstance, NULL);
     if (!g_hwndEdit)
         return FALSE;
+    /* بعض البيئات (Wine) تتجاهل WS_EX_NOINHERITLAYOUT فترث المساحة الاتجاه المعكوس وتُرسم
+       حروفها مقلوبة مع GDI؛ نزيله صراحة */
+    LONG_PTR editEx = GetWindowLongPtrW(g_hwndEdit, GWL_EXSTYLE);
+    if (editEx & WS_EX_LAYOUTRTL)
+        SetWindowLongPtrW(g_hwndEdit, GWL_EXSTYLE, editEx & ~(LONG_PTR)WS_EX_LAYOUTRTL);
 
     Sci(SCI_SETCODEPAGE, SC_CP_UTF8, 0);       /* كل النص داخل المساحة UTF-8 (شرط للنص ثنائي الاتجاه) */
 
@@ -471,8 +476,9 @@ static BOOL CreateEditor(HWND hwndParent, HINSTANCE hInstance)
     Sci(SCI_SETSELECTIONLAYER, SC_LAYER_UNDER_TEXT, 0);
     char line[160];
     snprintf(line, sizeof(line),
-             "ArabicEditor: SCI_GETTECHNOLOGY -> %d (1 = DirectWrite), SCI_GETBIDIRECTIONAL -> %d (1 = L2R, 0 = disabled)\n",
-             technology, bidi);
+             "ArabicEditor: SCI_GETTECHNOLOGY -> %d (1 = DirectWrite), SCI_GETBIDIRECTIONAL -> %d (1 = L2R, 0 = disabled), "
+             "editor inherited RTL layout: %s\n",
+             technology, bidi, (editEx & WS_EX_LAYOUTRTL) ? "yes (removed)" : "no");
     OutputDebugStringA(line);
 
     g_fontName = PickArabicFont();
