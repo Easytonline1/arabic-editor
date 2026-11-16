@@ -1,5 +1,7 @@
 /* Arabic Editor - نافذة Win32 فيها مساحة كتابة Scintilla بترميز UTF-8،
-   مع أوامر: جديد، فتح، حفظ، حفظ باسم، والسؤال عن الحفظ عند الإغلاق. */
+   مع أوامر: جديد، فتح، حفظ، حفظ باسم، والسؤال عن الحفظ عند الإغلاق،
+   وقائمة عرض (التفاف السطور، تكبير الخط وتصغيره) تُحفظ في editor.ini،
+   وتلوين ملفات الإعدادات بمحلل props من Lexilla. */
 #ifndef UNICODE
 #define UNICODE
 #endif
@@ -11,7 +13,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "Scintilla.h"
+#include "Lexilla.h"
+#include "SciLexer.h"
 #include "encoding.h"
+#include "settings.h"
 #include "resource.h"
 
 #define APP_NAME         L"Arabic Editor"
@@ -25,6 +30,8 @@ static HWND     g_hwndMain;
 static HWND     g_hwndEdit;
 static wchar_t  g_path[MAX_PATH];      /* فارغ = مستند جديد بلا اسم */
 static Encoding g_encoding;            /* ترميز الملف على القرص */
+static Settings g_settings;            /* حجم الخط والالتفاف وحجم النافذة */
+static const char *g_fontName = "Tahoma";
 
 /* ---------- أدوات صغيرة ---------- */
 
@@ -56,8 +63,8 @@ static void UpdateTitle(void)
 {
     wchar_t enc[32], title[MAX_PATH + 96];
     Enc_Describe(g_encoding, enc, 32);
-    _snwprintf(title, MAX_PATH + 96, L"%s%s [%s] - %s",
-               IsModified() ? L"*" : L"", DisplayName(), enc, APP_NAME);
+    _snwprintf(title, MAX_PATH + 96, L"%s%s [%s] %dpt - %s",
+               IsModified() ? L"*" : L"", DisplayName(), enc, g_settings.fontSize, APP_NAME);
     title[MAX_PATH + 95] = L'\0';
     SetWindowTextW(g_hwndMain, title);
 }
@@ -83,6 +90,67 @@ static void ReplaceDocument(const char *utf8, size_t len)
     Sci(SCI_EMPTYUNDOBUFFER, 0, 0);
     Sci(SCI_SETSAVEPOINT, 0, 0);
     Sci(SCI_GOTOPOS, 0, 0);
+}
+
+/* ---------- المظهر: الخط والالتفاف والتلوين ---------- */
+
+static BOOL g_propsLexer;   /* TRUE إن كان الملف الحالي ملف إعدادات يُلوَّن بمحلل props */
+
+static int Rgb(int r, int g, int b) { return r | (g << 8) | (b << 16); }   /* ألوان Scintilla بترتيب BGR */
+
+/* يطبّق الخط وحجمه على كل الأنماط ثم ألوان المحلل؛ يُستدعى بعد أي تغيير في الحجم أو المحلل */
+static void ApplyStyles(void)
+{
+    Sci(SCI_STYLESETFONT, STYLE_DEFAULT, (intptr_t)g_fontName);
+    Sci(SCI_STYLESETSIZE, STYLE_DEFAULT, (uintptr_t)g_settings.fontSize);
+    Sci(SCI_STYLECLEARALL, 0, 0);
+    if (g_propsLexer) {
+        Sci(SCI_STYLESETFORE, SCE_PROPS_COMMENT, Rgb(0x00, 0x80, 0x00));
+        Sci(SCI_STYLESETITALIC, SCE_PROPS_COMMENT, 1);
+        Sci(SCI_STYLESETFORE, SCE_PROPS_SECTION, Rgb(0x00, 0x00, 0xA0));
+        Sci(SCI_STYLESETBACK, SCE_PROPS_SECTION, Rgb(0xE8, 0xEE, 0xFF));
+        Sci(SCI_STYLESETBOLD, SCE_PROPS_SECTION, 1);
+        Sci(SCI_STYLESETEOLFILLED, SCE_PROPS_SECTION, 1);
+        Sci(SCI_STYLESETFORE, SCE_PROPS_KEY, Rgb(0x80, 0x00, 0x80));
+        Sci(SCI_STYLESETFORE, SCE_PROPS_ASSIGNMENT, Rgb(0xC0, 0x00, 0x00));
+        Sci(SCI_STYLESETBOLD, SCE_PROPS_ASSIGNMENT, 1);
+        Sci(SCI_STYLESETFORE, SCE_PROPS_DEFVAL, Rgb(0x80, 0x80, 0x00));
+    }
+    Sci(SCI_COLOURISE, 0, -1);
+}
+
+/* يختار المحلل حسب امتداد الملف: ملفات الإعدادات تُلوَّن بمحلل props، وغيرها نص عادي */
+static void ChooseLexer(void)
+{
+    static const wchar_t *propsExt[] = { L".ini", L".cfg", L".conf", L".properties", L".inf", L".props" };
+    const wchar_t *dot = g_path[0] ? wcsrchr(DisplayName(), L'.') : NULL;
+    BOOL props = FALSE;
+    for (size_t i = 0; dot && i < sizeof(propsExt) / sizeof(propsExt[0]); i++)
+        if (lstrcmpiW(dot, propsExt[i]) == 0)
+            props = TRUE;
+
+    if (props != g_propsLexer || !props) {
+        /* CreateLexer من Lexilla المربوطة ربطًا ثابتًا؛ Scintilla تتولى تحرير المحلل السابق */
+        Sci(SCI_SETILEXER, 0, props ? (intptr_t)CreateLexer("props") : 0);
+        g_propsLexer = props;
+        ApplyStyles();
+    }
+}
+
+static void SetFontSize(int size)
+{
+    if (size < FONT_SIZE_MIN) size = FONT_SIZE_MIN;
+    if (size > FONT_SIZE_MAX) size = FONT_SIZE_MAX;
+    g_settings.fontSize = size;
+    ApplyStyles();
+    UpdateTitle();
+}
+
+static void SetWordWrap(BOOL on)
+{
+    g_settings.wordWrap = on;
+    Sci(SCI_SETWRAPMODE, on ? SC_WRAP_WORD : SC_WRAP_NONE, 0);
+    CheckMenuItem(GetMenu(g_hwndMain), IDM_VIEW_WORDWRAP, on ? MF_CHECKED : MF_UNCHECKED);
 }
 
 /* ---------- القراءة والكتابة ---------- */
@@ -168,6 +236,7 @@ static BOOL LoadFile(const wchar_t *path)
     HeapFree(GetProcessHeap(), 0, utf8);
     lstrcpynW(g_path, path, MAX_PATH);
     g_encoding = enc;
+    ChooseLexer();
     UpdateTitle();
     return TRUE;
 }
@@ -220,6 +289,7 @@ static BOOL SaveToPath(const wchar_t *path)
     lstrcpynW(g_path, path, MAX_PATH);
     g_encoding = enc;
     Sci(SCI_SETSAVEPOINT, 0, 0);
+    ChooseLexer();
     UpdateTitle();
     return TRUE;
 }
@@ -297,6 +367,7 @@ static void CmdNew(void)
     g_path[0] = L'\0';
     g_encoding.kind = ENC_UTF8;     /* الملف الجديد يُحفظ بـ UTF-8 */
     g_encoding.codePage = CP_UTF8;
+    ChooseLexer();
     UpdateTitle();
 }
 
@@ -339,6 +410,41 @@ static const char *PickArabicFont(void)
     return chosen;
 }
 
+/* ---------- حفظ الإعدادات عند الإغلاق ---------- */
+
+static void SaveSettingsOnExit(void)
+{
+    WINDOWPLACEMENT wp;
+    ZeroMemory(&wp, sizeof(wp));
+    wp.length = sizeof(wp);
+    if (GetWindowPlacement(g_hwndMain, &wp)) {
+        g_settings.width     = wp.rcNormalPosition.right - wp.rcNormalPosition.left;
+        g_settings.height    = wp.rcNormalPosition.bottom - wp.rcNormalPosition.top;
+        g_settings.maximized = wp.showCmd == SW_SHOWMAXIMIZED;
+    }
+
+    DWORD err;
+    wchar_t failed[MAX_PATH];
+    if (Settings_Save(&g_settings, &err, failed, MAX_PATH))
+        return;
+
+    wchar_t reason[256] = L"";
+    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, err, 0,
+                   reason, 256, NULL);
+    for (wchar_t *p = reason; *p; p++)            /* إزالة سطر جديد في نهاية نص النظام */
+        if (*p == L'\r' || *p == L'\n') *p = L' ';
+
+    wchar_t msg[MAX_PATH + 512];
+    _snwprintf(msg, MAX_PATH + 512,
+               L"تعذّر حفظ الإعدادات (حجم الخط، والتفاف السطور، وحجم النافذة) في الملف:\n"
+               L"%s\n\n"
+               L"السبب: %s(رمز الخطأ %lu)\n\n"
+               L"لن تُحفظ التغييرات الأخيرة، وستُقرأ الإعدادات السابقة عند التشغيل القادم.",
+               failed, reason[0] ? reason : L"غير معروف ", (unsigned long)err);
+    msg[MAX_PATH + 511] = L'\0';
+    Ask(msg, MB_OK | MB_ICONWARNING);
+}
+
 /* ---------- النافذة ---------- */
 
 static BOOL CreateEditor(HWND hwndParent, HINSTANCE hInstance)
@@ -350,10 +456,13 @@ static BOOL CreateEditor(HWND hwndParent, HINSTANCE hInstance)
         return FALSE;
 
     Sci(SCI_SETCODEPAGE, SC_CP_UTF8, 0);       /* كل النص داخل المساحة UTF-8 */
-    Sci(SCI_STYLESETFONT, STYLE_DEFAULT, (intptr_t)PickArabicFont());
-    Sci(SCI_STYLESETSIZE, STYLE_DEFAULT, 14);
-    Sci(SCI_STYLECLEARALL, 0, 0);
+    g_fontName = PickArabicFont();
     Sci(SCI_SETMARGINWIDTHN, 1, 0);
+    /* التكبير عندنا يغيّر حجم الخط نفسه، فنلغي اختصارات التكبير الداخلية في Scintilla */
+    Sci(SCI_CLEARCMDKEY, SCK_ADD + (SCMOD_CTRL << 16), 0);
+    Sci(SCI_CLEARCMDKEY, SCK_SUBTRACT + (SCMOD_CTRL << 16), 0);
+    Sci(SCI_CLEARCMDKEY, SCK_DIVIDE + (SCMOD_CTRL << 16), 0);
+    ApplyStyles();
     return TRUE;
 }
 
@@ -366,6 +475,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             return -1;
         g_encoding.kind = ENC_UTF8;
         g_encoding.codePage = CP_UTF8;
+        ApplyStyles();
+        SetWordWrap(g_settings.wordWrap);
         UpdateTitle();
         return 0;
 
@@ -384,6 +495,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         if (n->nmhdr.hwndFrom == g_hwndEdit &&
             (n->nmhdr.code == SCN_SAVEPOINTREACHED || n->nmhdr.code == SCN_SAVEPOINTLEFT))
             UpdateTitle();              /* إظهار/إخفاء علامة * في العنوان */
+        if (n->nmhdr.hwndFrom == g_hwndEdit && n->nmhdr.code == SCN_ZOOM) {
+            /* Ctrl+عجلة الفأرة: نحوّل تكبير Scintilla إلى تغيير في حجم الخط المحفوظ */
+            int z = (int)Sci(SCI_GETZOOM, 0, 0);
+            if (z != 0) {
+                Sci(SCI_SETZOOM, 0, 0);
+                SetFontSize(g_settings.fontSize + z);
+            }
+        }
         return 0;
     }
 
@@ -394,12 +513,18 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         case IDM_FILE_SAVE:   CmdSave();   return 0;
         case IDM_FILE_SAVEAS: CmdSaveAs(); return 0;
         case IDM_FILE_EXIT:   SendMessageW(hwnd, WM_CLOSE, 0, 0); return 0;
+        case IDM_VIEW_WORDWRAP:  SetWordWrap(!g_settings.wordWrap); return 0;
+        case IDM_VIEW_ZOOMIN:    SetFontSize(g_settings.fontSize + 1); return 0;
+        case IDM_VIEW_ZOOMOUT:   SetFontSize(g_settings.fontSize - 1); return 0;
+        case IDM_VIEW_ZOOMRESET: SetFontSize(FONT_SIZE_DEFAULT); return 0;
         }
         break;
 
     case WM_CLOSE:
-        if (ConfirmDiscardOrSave())
+        if (ConfirmDiscardOrSave()) {
+            SaveSettingsOnExit();       /* عند الفشل تظهر رسالة ثم يُغلق البرنامج */
             DestroyWindow(hwnd);
+        }
         return 0;                       /* الإلغاء يُبقي النافذة مفتوحة */
 
     case WM_QUERYENDSESSION:
@@ -434,12 +559,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     if (!RegisterClassExW(&wc))
         return 1;
 
+    Settings_Load(&g_settings);        /* قبل إنشاء النافذة لنستعمل حجمها المحفوظ */
+
     HWND hwnd = CreateWindowExW(0, CLASS_NAME, APP_NAME, WS_OVERLAPPEDWINDOW,
-                                CW_USEDEFAULT, CW_USEDEFAULT, 800, 600,
+                                CW_USEDEFAULT, CW_USEDEFAULT,
+                                g_settings.width, g_settings.height,
                                 NULL, NULL, hInstance, NULL);
     if (!hwnd)
         return 1;
 
+    if (g_settings.maximized && (nCmdShow == SW_SHOWNORMAL || nCmdShow == SW_SHOWDEFAULT))
+        nCmdShow = SW_SHOWMAXIMIZED;
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 

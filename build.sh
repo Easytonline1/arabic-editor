@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# يبني build/editor.exe لويندوز 64 بت باستخدام mingw-w64، مع ربط Scintilla ربطًا ثابتًا
+# يبني build/editor.exe لويندوز 64 بت باستخدام mingw-w64، مع ربط Scintilla و Lexilla ربطًا ثابتًا
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -9,15 +9,20 @@ CXX="${CXX:-${PREFIX}-g++-posix}"
 WINDRES="${WINDRES:-${PREFIX}-windres}"
 SCI=third_party/scintilla
 SCILIB="$SCI/bin/libscintilla.a"
+LEX=third_party/lexilla
+LEXLIB="$LEX/bin/liblexilla.a"
 
-# ابنِ مكتبة Scintilla الثابتة إن لم تكن موجودة
+# ابنِ المكتبتين الثابتتين إن لم تكونا موجودتين
 if [ ! -f "$SCILIB" ]; then
     ./scripts/build-scintilla.sh
 fi
+if [ ! -f "$LEXLIB" ]; then
+    ./scripts/build-lexilla.sh
+fi
 
 mkdir -p build
-CFLAGS=(-municode -O2 -Wall -Wextra -I "$SCI/include")
-for src in main encoding; do
+CFLAGS=(-municode -O2 -Wall -Wextra -I "$SCI/include" -I "$LEX/include")
+for src in main encoding settings; do
     "$CC" "${CFLAGS[@]}" -c "src/$src.c" -o "build/$src.o"
 done
 # ملف الموارد مكتوب بـ UTF-8 (القائمة العربية)
@@ -26,7 +31,8 @@ done
 # الربط بـ g++ لأن Scintilla مكتوبة بـ C++؛ و -static يدمج libstdc++ و libgcc و winpthread
 # في الملف التنفيذي فلا يحتاج أي DLL غير مكتبات ويندوز
 "$CXX" -municode -mwindows -static -s \
-    -o build/editor.exe build/main.o build/encoding.o build/resource.o "$SCILIB" \
-    -lcomdlg32 -lgdi32 -luser32 -limm32 -lole32 -luuid -loleaut32 -ladvapi32 -lmsimg32
+    -o build/editor.exe build/main.o build/encoding.o build/settings.o build/resource.o \
+    "$LEXLIB" "$SCILIB" \
+    -lcomdlg32 -lshell32 -lgdi32 -luser32 -limm32 -lole32 -luuid -loleaut32 -ladvapi32 -lmsimg32
 
 echo "Built: build/editor.exe"

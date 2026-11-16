@@ -11,4 +11,9 @@
 #define IDM_FILE_SAVEAS  1004
 #define IDM_FILE_EXIT    1005
 
+#define IDM_VIEW_WORDWRAP   1101
+#define IDM_VIEW_ZOOMIN     1102
+#define IDM_VIEW_ZOOMOUT    1103
+#define IDM_VIEW_ZOOMRESET  1104
+
 #endif
