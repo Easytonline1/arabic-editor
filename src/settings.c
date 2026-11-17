@@ -74,7 +74,7 @@ BOOL Settings_Save(const Settings *s, DWORD *error, wchar_t *failedPath, size_t 
 
     char text[512];
     int len = snprintf(text, sizeof(text),
-        "; Arabic Editor settings - written on exit\r\n"
+        "; Qalam (editor.exe) settings - written on exit\r\n"
         "[View]\r\n"
         "FontSize=%d\r\n"
         "WordWrap=%d\r\n"

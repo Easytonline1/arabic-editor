@@ -1,4 +1,4 @@
-/* Arabic Editor - نافذة Win32 فيها مساحة كتابة Scintilla بترميز UTF-8،
+/* قلم (editor.exe) - نافذة Win32 فيها مساحة كتابة Scintilla بترميز UTF-8،
    مع أوامر: جديد، فتح، حفظ، حفظ باسم، والسؤال عن الحفظ عند الإغلاق،
    وقائمة عرض (التفاف السطور، تكبير الخط وتصغيره) تُحفظ في editor.ini،
    وتلوين ملفات الإعدادات بمحلل props من Lexilla، وعدّاد كلمات في شريط الحالة. */
@@ -24,7 +24,7 @@
 #include "about.h"
 #include "resource.h"
 
-#define APP_NAME         L"Arabic Editor"
+#define APP_NAME         L"قلم"
 #define UNTITLED_NAME    L"بلا عنوان"
 #define MAX_FILE_BYTES   (256u * 1024u * 1024u)   /* حد معقول لمحرر نصوص */
 
@@ -703,7 +703,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     wc.lpszClassName = CLASS_NAME;
     wc.lpszMenuName  = MAKEINTRESOURCEW(IDR_MAINMENU);
     wc.hCursor       = LoadCursorW(NULL, IDC_ARROW);
-    wc.hIcon         = LoadIconW(NULL, IDI_APPLICATION);
+    /* أيقونة البرنامج من موارده: الكبيرة لـ Alt+Tab، والصغيرة لشريط العنوان وشريط المهام */
+    wc.hIcon         = (HICON)LoadImageW(hInstance, MAKEINTRESOURCEW(IDI_APPICON), IMAGE_ICON,
+                                         GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), 0);
+    wc.hIconSm       = (HICON)LoadImageW(hInstance, MAKEINTRESOURCEW(IDI_APPICON), IMAGE_ICON,
+                                         GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 
     if (!RegisterClassExW(&wc))

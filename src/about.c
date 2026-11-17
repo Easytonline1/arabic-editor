@@ -7,7 +7,7 @@
 #include "resource.h"
 
 static const wchar_t ABOUT_TEXT[] =
-    L"Arabic Editor\r\n"
+    L"قلم\r\n"
     L"محرر نصوص عربي لويندوز: يكتب بترميز UTF-8، ويفتح الملفات العربية القديمة بترميز Windows-1256 ويحفظها به.\r\n"
     L"\r\n"
     L"بُني بعد دراسة سلوك برنامج Notepad2، وصاحبه الأصلي Florian Balmer، دون نسخ شيفرته. "

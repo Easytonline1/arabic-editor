@@ -48,7 +48,7 @@ static void Trace(const char *fmt, ...)
 static int Ask(const wchar_t *text, UINT flags)
 {
     HWND owner = g_dialog && IsWindowVisible(g_dialog) ? g_dialog : g_main;
-    return ArabicMessageBox(owner, text, L"Arabic Editor", flags);
+    return ArabicMessageBox(owner, text, L"قلم", flags);
 }
 
 static int SearchFlags(void)

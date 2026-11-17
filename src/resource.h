@@ -2,6 +2,7 @@
 #ifndef ARABIC_EDITOR_RESOURCE_H
 #define ARABIC_EDITOR_RESOURCE_H
 
+#define IDI_APPICON    1      /* أيقونة البرنامج (icon.ico)، أول أيقونة فيظهرها المستكشف */
 #define IDR_MAINMENU   100
 #define IDR_ACCEL      101
 

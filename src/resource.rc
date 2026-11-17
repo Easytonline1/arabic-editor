@@ -3,6 +3,38 @@
 #include <windows.h>
 #include "resource.h"
 
+// أيقونة البرنامج: ورقة وقلم (يرسمها scripts/make-icon.py)
+IDI_APPICON ICON "icon.ico"
+
+// معلومات الإصدار: النصوص السبعة المطلوبة، بالعربية (0x0401) وترميز Unicode (1200)
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040104b0"
+        BEGIN
+            VALUE "CompanyName",      "مشروع قلم"
+            VALUE "FileDescription",  "قلم"
+            VALUE "FileVersion",      "1.0.0.0"
+            VALUE "InternalName",     "editor"
+            VALUE "OriginalFilename", "editor.exe"
+            VALUE "ProductName",      "قلم"
+            VALUE "ProductVersion",   "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0401, 1200
+    END
+END
+
 IDR_MAINMENU MENU
 BEGIN
     POPUP "&ملف"
