@@ -39,10 +39,27 @@ static INT_PTR CALLBACK AboutProc(HWND dlg, UINT msg, WPARAM wParam, LPARAM lPar
     case WM_INITDIALOG: {
         SetDlgItemTextW(dlg, IDC_ABOUT_TEXT, ABOUT_TEXT);
 
-        /* نصوص الرخص إنجليزية: نجعل حقلها من اليسار لليمين داخل النافذة العربية المعكوسة */
-        HWND lic = GetDlgItem(dlg, IDC_ABOUT_LICENSE);
-        LONG_PTR ex = GetWindowLongPtrW(lic, GWL_EXSTYLE);
-        SetWindowLongPtrW(lic, GWL_EXSTYLE, ex & ~(LONG_PTR)(WS_EX_LAYOUTRTL | WS_EX_RTLREADING | WS_EX_RIGHT));
+        /* نصوص الرخص إنجليزية فنعرضها من اليسار لليمين داخل النافذة العربية المعكوسة.
+           تغيير اتجاه حقل النص بعد إنشائه لا يعيد رسم شريط تمريره في كل البيئات (Wine)،
+           فننشئ حاوية مكان العنصر المؤقت، ونزيل عنها الاتجاه المعكوس قبل أن نضع فيها الحقل،
+           فيُنشأ الحقل من اليسار لليمين من البداية */
+        HWND placeholder = GetDlgItem(dlg, IDC_ABOUT_LICENSE);
+        RECT r;
+        GetWindowRect(placeholder, &r);
+        MapWindowPoints(NULL, dlg, (POINT *)&r, 2);
+        if (r.left > r.right) { LONG x = r.left; r.left = r.right; r.right = x; }   /* إحداثيات معكوسة */
+        DestroyWindow(placeholder);
+        HINSTANCE inst = (HINSTANCE)lParam;
+        HWND box = CreateWindowExW(WS_EX_CONTROLPARENT, L"STATIC", NULL, WS_CHILD | WS_VISIBLE,
+                                   r.left, r.top, r.right - r.left, r.bottom - r.top, dlg, NULL, inst, NULL);
+        LONG_PTR ex = GetWindowLongPtrW(box, GWL_EXSTYLE);
+        SetWindowLongPtrW(box, GWL_EXSTYLE, ex & ~(LONG_PTR)WS_EX_LAYOUTRTL);
+        HWND lic = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", NULL,
+                                   WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL |
+                                   ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | ES_LEFT,
+                                   0, 0, r.right - r.left, r.bottom - r.top, box,
+                                   (HMENU)(INT_PTR)IDC_ABOUT_LICENSE, inst, NULL);
+        SendMessageW(lic, WM_SETFONT, SendMessageW(dlg, WM_GETFONT, 0, 0), FALSE);
         wchar_t *text = LoadLicenseText((HINSTANCE)lParam);
         SetWindowTextW(lic, text ? text : L"(تعذّر تحميل نص الرخص من موارد البرنامج)");
         if (text)
