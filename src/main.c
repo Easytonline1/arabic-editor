@@ -21,6 +21,7 @@
 #include "find.h"
 #include "msgbox.h"
 #include "wordcount.h"
+#include "about.h"
 #include "resource.h"
 
 #define APP_NAME         L"Arabic Editor"
@@ -660,6 +661,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         case IDM_SEARCH_FIND:    Find_ShowDialog(FALSE); return 0;
         case IDM_SEARCH_NEXT:    Find_Next(); return 0;
         case IDM_SEARCH_REPLACE: Find_ShowDialog(TRUE); return 0;
+        case IDM_HELP_ABOUT:
+            About_Show((HINSTANCE)GetWindowLongPtrW(hwnd, GWLP_HINSTANCE), hwnd);
+            return 0;
         }
         break;
 

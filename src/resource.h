@@ -21,6 +21,13 @@
 #define IDM_SEARCH_NEXT     1202
 #define IDM_SEARCH_REPLACE  1203
 
+#define IDM_HELP_ABOUT      1301
+
+#define IDD_ABOUT           300
+#define IDC_ABOUT_TEXT      301
+#define IDC_ABOUT_LICENSE   302
+#define IDR_LICENSE         310
+
 #define IDD_FINDREPLACE     200
 #define IDC_FIND_TEXT       201
 #define IDC_REPLACE_LABEL   202

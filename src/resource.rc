@@ -32,6 +32,10 @@ BEGIN
             MENUITEM "&الحجم الافتراضي\tCtrl+0",  IDM_VIEW_ZOOMRESET
         END
     END
+    POPUP "م&ساعدة"
+    BEGIN
+        MENUITEM "&حول البرنامج...\tF1",        IDM_HELP_ABOUT
+    END
 END
 
 IDR_ACCEL ACCELERATORS
@@ -51,6 +55,22 @@ BEGIN
     "F",         IDM_SEARCH_FIND,    VIRTKEY, CONTROL
     VK_F3,       IDM_SEARCH_NEXT,    VIRTKEY
     "H",         IDM_SEARCH_REPLACE, VIRTKEY, CONTROL
+    VK_F1,       IDM_HELP_ABOUT,     VIRTKEY
+END
+
+// ملف LICENSE من جذر المستودع مضمَّن كما هو لتعرضه نافذة "حول البرنامج"
+IDR_LICENSE RCDATA "LICENSE"
+
+// نافذة "حول البرنامج" (معكوسة من اليمين لليسار)
+IDD_ABOUT DIALOGEX 0, 0, 330, 262
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_LAYOUTRTL
+CAPTION "حول البرنامج"
+FONT 9, "MS Shell Dlg 2", 0, 0, 0x1
+BEGIN
+    LTEXT           "", IDC_ABOUT_TEXT, 10, 8, 310, 74
+    EDITTEXT        IDC_ABOUT_LICENSE, 10, 86, 310, 148, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "موافق", IDOK, 135, 240, 60, 15, WS_TABSTOP
 END
 
 // نافذة البحث والاستبدال (غير مشروطة). في وضع البحث تُخفى عناصر الاستبدال.
